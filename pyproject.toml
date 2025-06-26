@@ -1,0 +1,228 @@
+[build-system]
+requires = ["setuptools>=60", "wheel", "pybind11>=2.8.0", "cmake>=3.18"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opencam-auto-exposure"
+version = "1.0.0"
+description = "High-performance auto exposure algorithm for camera systems"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Nik Jois", email = "nikjois@llamasearch.ai"}
+]
+maintainers = [
+    {name = "Nik Jois", email = "nikjois@llamasearch.ai"}
+]
+keywords = [
+    "computer-vision",
+    "camera",
+    "auto-exposure",
+    "image-processing",
+    "opencv",
+    "cpp",
+    "python-bindings",
+    "fastapi",
+    "machine-learning"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: C++",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Multimedia :: Graphics :: Capture :: Digital Camera",
+]
+requires-python = ">=3.7"
+dependencies = [
+    "numpy>=1.21.0",
+    "opencv-python>=4.5.0",
+    "pybind11>=2.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0.0",
+    "pytest-cov>=3.0.0",
+    "pytest-asyncio>=0.18.0",
+    "pytest-benchmark>=3.4.0",
+    "black>=21.0.0",
+    "isort>=5.0.0",
+    "flake8>=4.0.0",
+    "mypy>=0.910",
+    "pre-commit>=2.15.0",
+]
+docs = [
+    "sphinx>=4.0.0",
+    "sphinx-rtd-theme>=1.0.0",
+    "myst-parser>=0.15.0",
+]
+ml = [
+    "torch>=1.9.0",
+    "torchvision>=0.10.0",
+    "onnx>=1.9.0",
+    "onnxruntime>=1.8.0",
+    "scikit-learn>=1.0.0",
+    "matplotlib>=3.5.0",
+    "seaborn>=0.11.0",
+]
+api = [
+    "fastapi>=0.70.0",
+    "uvicorn[standard]>=0.15.0",
+    "python-multipart>=0.0.5",
+    "pydantic>=1.8.0",
+    "openai>=1.0.0",
+]
+benchmark = [
+    "psutil>=5.8.0",
+    "memory-profiler>=0.60.0",
+    "line-profiler>=3.3.0",
+]
+all = [
+    "opencam-auto-exposure[dev,docs,ml,api,benchmark]"
+]
+
+[project.urls]
+Homepage = "https://github.com/nikjois/opencam-auto-exposure"
+Documentation = "https://opencam-auto-exposure.readthedocs.io/"
+Repository = "https://github.com/nikjois/opencam-auto-exposure.git"
+"Bug Tracker" = "https://github.com/nikjois/opencam-auto-exposure/issues"
+Changelog = "https://github.com/nikjois/opencam-auto-exposure/blob/main/CHANGELOG.md"
+
+[project.scripts]
+opencam-benchmark = "opencam.benchmark:main"
+opencam-train = "ml.training.train_scene_classifier:main"
+
+[tool.setuptools]
+packages = ["opencam"]
+package-dir = {"" = "python"}
+
+[tool.setuptools.package-data]
+opencam = ["*.pyi", "py.typed"]
+
+# Black configuration
+[tool.black]
+line-length = 88
+target-version = ['py37', 'py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# isort configuration
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["opencam"]
+known_third_party = [
+    "numpy",
+    "opencv",
+    "cv2",
+    "torch",
+    "torchvision",
+    "fastapi",
+    "pydantic",
+    "uvicorn",
+    "pytest",
+    "pybind11"
+]
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.7"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "cv2.*",
+    "torch.*",
+    "torchvision.*",
+    "sklearn.*",
+    "matplotlib.*",
+    "seaborn.*",
+    "onnx.*",
+    "onnxruntime.*",
+]
+ignore_missing_imports = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=opencam",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "benchmark: marks tests as benchmarks",
+    "gpu: marks tests that require GPU",
+]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["opencam"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "setup.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+# Flake8 configuration (in setup.cfg since flake8 doesn't support pyproject.toml yet)
+# See setup.cfg for flake8 configuration 

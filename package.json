@@ -1,0 +1,58 @@
+{
+  "name": "opencam-auto-exposure",
+  "version": "1.0.0",
+  "description": "Auto Exposure Algorithm for OpenCam Camera System",
+  "main": "index.js",
+  "scripts": {
+    "build": "make build",
+    "test": "make test",
+    "benchmark": "make benchmark",
+    "coverage": "make coverage",
+    "lint": "make lint",
+    "format": "make format",
+    "clean": "make clean",
+    "docker:build": "docker build -f docker/Dockerfile.test -t opencam-auto-exposure .",
+    "docker:test": "docker run --rm opencam-auto-exposure",
+    "docs": "make docs",
+    "ci": "make ci",
+    "dev-setup": "make dev-setup",
+    "precommit": "make format && make lint",
+    "release": "npm version patch && git push --tags"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nikjois/opencam-auto-exposure.git"
+  },
+  "keywords": [
+    "computer-vision",
+    "camera",
+    "auto-exposure",
+    "image-processing",
+    "opencv",
+    "cpp"
+  ],
+  "author": "Nik Jois <nikjois@llamasearch.ai>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nikjois/opencam-auto-exposure/issues"
+  },
+  "homepage": "https://github.com/nikjois/opencam-auto-exposure#readme",
+  "devDependencies": {
+    "husky": "^8.0.0",
+    "lint-staged": "^13.0.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{cpp,h}": [
+      "clang-format -i",
+      "git add"
+    ]
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
