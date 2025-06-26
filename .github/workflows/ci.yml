@@ -1,0 +1,343 @@
+name: Auto Exposure CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run nightly tests at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  BUILD_TYPE: Release
+  COVERAGE_BUILD_TYPE: Debug
+
+jobs:
+  # Code quality checks
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-tidy cppcheck
+    
+    - name: Run clang-tidy
+      run: |
+        find algorithms/ -name "*.cpp" -o -name "*.h" | xargs clang-tidy
+    
+    - name: Run cppcheck
+      run: |
+        cppcheck --enable=all --xml --xml-version=2 algorithms/ 2> cppcheck-results.xml
+    
+    - name: Upload cppcheck results
+      uses: actions/upload-artifact@v3
+      with:
+        name: cppcheck-results
+        path: cppcheck-results.xml
+
+  # Build and test on multiple platforms
+  build-and-test:
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04]
+        compiler: [gcc, clang]
+        build_type: [Debug, Release]
+        exclude:
+          # Reduce matrix size for faster CI
+          - os: ubuntu-20.04
+            build_type: Release
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libopencv-dev \
+          libspdlog-dev \
+          libgtest-dev \
+          libgmock-dev \
+          lcov \
+          valgrind
+    
+    - name: Set up compiler
+      run: |
+        if [ "${{ matrix.compiler }}" = "clang" ]; then
+          sudo apt-get install -y clang
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+        fi
+    
+    - name: Configure CMake
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DENABLE_COVERAGE=${{ matrix.build_type == 'Debug' && 'ON' || 'OFF' }}
+    
+    - name: Build
+      run: cmake --build build --config ${{ matrix.build_type }} -j$(nproc)
+    
+    - name: Run unit tests
+      run: |
+        cd build
+        ctest --output-on-failure --verbose
+    
+    - name: Generate coverage report
+      if: matrix.build_type == 'Debug' && matrix.compiler == 'gcc'
+      run: |
+        lcov --capture --directory build --output-file coverage.info
+        lcov --remove coverage.info '/usr/*' '*/tests/*' '*/build/*' --output-file coverage_filtered.info
+        lcov --list coverage_filtered.info
+    
+    - name: Upload coverage to Codecov
+      if: matrix.build_type == 'Debug' && matrix.compiler == 'gcc'
+      uses: codecov/codecov-action@v3
+      with:
+        file: coverage_filtered.info
+        flags: unittests
+        name: codecov-${{ matrix.os }}-${{ matrix.compiler }}
+    
+    - name: Run memory leak detection
+      if: matrix.build_type == 'Debug'
+      run: |
+        valgrind --tool=memcheck --leak-check=full --error-exitcode=1 \
+          build/test_auto_exposure
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}
+        path: |
+          build/Testing/
+          *.xml
+
+  # Performance benchmarks
+  benchmark:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libopencv-dev \
+          libspdlog-dev \
+          python3 \
+          python3-pip
+        pip3 install numpy matplotlib pandas
+    
+    - name: Build benchmarks
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DENABLE_BENCHMARKS=ON
+        cmake --build build -j$(nproc)
+    
+    - name: Download baseline benchmarks
+      continue-on-error: true
+      run: |
+        # Try to download baseline from previous successful run
+        gh run download --name baseline-benchmark || echo "No baseline found"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Run benchmarks
+      run: |
+        mkdir -p benchmark_results
+        cd benchmark_results
+        ../build/auto_exposure_benchmark
+    
+    - name: Compare with baseline
+      if: github.event_name == 'pull_request'
+      run: |
+        if [ -f baseline_benchmark.json ]; then
+          python3 scripts/compare_benchmarks.py \
+            baseline_benchmark.json \
+            benchmark_results/auto_exposure_benchmark.json \
+            --output comparison_report.json
+        else
+          echo "No baseline found, skipping comparison"
+        fi
+    
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v3
+      with:
+        name: benchmark-results
+        path: |
+          benchmark_results/
+          comparison_report.json
+    
+    - name: Save as baseline
+      if: github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v3
+      with:
+        name: baseline-benchmark
+        path: benchmark_results/auto_exposure_benchmark.json
+
+  # Docker build and test
+  docker-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Build Docker test image
+      run: |
+        docker build -f docker/Dockerfile.test -t auto-exposure-test .
+    
+    - name: Run tests in Docker
+      run: |
+        docker run --rm \
+          -v $PWD/test_results:/workspace/test_results \
+          auto-exposure-test
+    
+    - name: Upload Docker test results
+      uses: actions/upload-artifact@v3
+      with:
+        name: docker-test-results
+        path: test_results/
+
+  # Integration tests with real cameras
+  integration-test:
+    runs-on: ubuntu-latest
+    # Only run on main branch to avoid issues with camera access
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libopencv-dev \
+          libspdlog-dev \
+          v4l-utils
+    
+    - name: Build project
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build -j$(nproc)
+    
+    - name: List available cameras
+      run: |
+        v4l2-ctl --list-devices || echo "No cameras found"
+        ls /dev/video* || echo "No video devices found"
+    
+    - name: Test with virtual camera
+      run: |
+        # Create a virtual video device for testing
+        sudo modprobe v4l2loopback devices=1 video_nr=10 card_label="Virtual Camera"
+        
+        # Generate test video stream
+        ffmpeg -f lavfi -i testsrc=duration=10:size=640x480:rate=30 \
+          -f v4l2 /dev/video10 &
+        
+        sleep 2
+        
+        # Test auto exposure with virtual camera
+        timeout 5s build/auto_exposure_demo 10 || echo "Demo completed"
+
+  # Security scan
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  # Documentation generation
+  documentation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Doxygen
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y doxygen graphviz
+    
+    - name: Generate documentation
+      run: |
+        doxygen Doxyfile
+    
+    - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs/html
+
+  # Release workflow
+  release:
+    runs-on: ubuntu-latest
+    needs: [lint, build-and-test, benchmark, docker-test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Generate changelog
+      run: |
+        # Simple changelog generation
+        git log --oneline --since="1 week ago" > CHANGELOG.md
+    
+    - name: Create release
+      if: contains(github.event.head_commit.message, '[release]')
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.run_number }}
+        release_name: Release v${{ github.run_number }}
+        body_path: CHANGELOG.md
+        draft: false
+        prerelease: false
+
+  # Notification
+  notify:
+    runs-on: ubuntu-latest
+    needs: [lint, build-and-test, benchmark, docker-test]
+    if: always()
+    
+    steps:
+    - name: Notify on success
+      if: needs.build-and-test.result == 'success'
+      run: |
+        echo "✅ All tests passed successfully!"
+    
+    - name: Notify on failure
+      if: needs.build-and-test.result == 'failure'
+      run: |
+        echo "❌ Tests failed!"
+        exit 1

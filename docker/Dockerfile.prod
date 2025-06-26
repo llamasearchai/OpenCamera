@@ -1,0 +1,106 @@
+# Production Dockerfile for OpenCam Auto Exposure
+# Author: Nik Jois <nikjois@llamasearch.ai>
+
+# Multi-stage build for optimized production image
+FROM ubuntu:22.04 as builder
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    ninja-build \
+    pkg-config \
+    git \
+    python3 \
+    python3-pip \
+    python3-dev \
+    libopencv-dev \
+    libspdlog-dev \
+    libeigen3-dev \
+    libfmt-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up Python environment
+RUN python3 -m pip install --upgrade pip setuptools wheel
+
+# Copy source code
+WORKDIR /app
+COPY . .
+
+# Install Python dependencies
+RUN pip install -r requirements.txt
+
+# Build C++ library
+RUN mkdir -p build && cd build && \
+    cmake .. \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CXX_FLAGS="-O3 -march=native" \
+        -DBUILD_TESTS=OFF \
+        -DBUILD_BENCHMARKS=OFF \
+        -GNinja && \
+    ninja
+
+# Build Python bindings
+RUN cd python/bindings && pip install .
+
+# Production stage
+FROM ubuntu:22.04 as production
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV OPENCAM_LOG_LEVEL=INFO
+ENV OPENCAM_NUM_THREADS=4
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    libopencv-core4.5d \
+    libopencv-imgproc4.5d \
+    libopencv-imgcodecs4.5d \
+    libspdlog1.10 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r opencam && useradd -r -g opencam opencam
+
+# Set up application directory
+WORKDIR /app
+RUN chown opencam:opencam /app
+
+# Copy built artifacts from builder stage
+COPY --from=builder --chown=opencam:opencam /app/build/lib* /usr/local/lib/
+COPY --from=builder --chown=opencam:opencam /usr/local/lib/python3.10/dist-packages/ /usr/local/lib/python3.10/dist-packages/
+COPY --from=builder --chown=opencam:opencam /app/python/api/ /app/
+COPY --from=builder --chown=opencam:opencam /app/ml/ /app/ml/
+
+# Install runtime Python dependencies
+RUN pip install --no-cache-dir \
+    fastapi[all]>=0.70.0 \
+    uvicorn[standard]>=0.15.0 \
+    pydantic>=1.8.0 \
+    numpy>=1.21.0 \
+    opencv-python-headless>=4.5.0
+
+# Update library cache
+RUN ldconfig
+
+# Switch to non-root user
+USER opencam
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Default command
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"] 
