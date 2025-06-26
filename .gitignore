@@ -1,0 +1,136 @@
+# Build directories
+build/
+dist/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+.benchmarks/
+
+# Compiled binaries
+*.o
+*.so
+*.dll
+*.dylib
+*.exe
+*.out
+*.app
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+!cmake/*.cmake
+
+# Python
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Coverage reports
+coverage.xml
+.coverage
+htmlcov/
+*.gcov
+*.gcda
+*.gcno
+coverage.info
+coverage_filtered.info
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation
+docs/_build/
+docs/html/
+docs/latex/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Test results
+test_results.xml
+Testing/
+junit.xml
+
+# Benchmark results
+benchmark_results/
+*.json.bak
+
+# Docker
+.dockerignore
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Package files
+*.tar.gz
+*.zip
+*.deb
+*.rpm
+
+# Profiling
+*.prof
+*.pstats
+
+# Local configuration
+.env
+.env.local
+config.local.json
+
+# Node modules (for any JS tooling)
+node_modules/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+build/
+DerivedData/
+
+# Android Studio
+*.iml
+.gradle/
+local.properties
+.idea/workspace.xml
+.idea/libraries/
+
+# Rust
+target/
+Cargo.lock
+
+# Go
+vendor/ 
