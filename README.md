@@ -1,5 +1,12 @@
 # OpenCam Auto Exposure Algorithm
 
+[![CI/CD](https://github.com/llamasearchai/OpenCamera/workflows/Auto%20Exposure%20CI/CD/badge.svg)](https://github.com/llamasearchai/OpenCamera/actions)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/llamasearchai/OpenCamera/releases)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](https://github.com/llamasearchai/OpenCamera)
+[![Python](https://img.shields.io/badge/python-3.7%2B-blue.svg)](https://www.python.org/downloads/)
+[![C++](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
+
 **Author:** Nik Jois <nikjois@llamasearch.ai>
 
 A high-performance, intelligent auto exposure algorithm for camera systems with comprehensive Python bindings, FastAPI service, ML integration, and complete testing infrastructure.
