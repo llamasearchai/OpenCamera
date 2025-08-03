@@ -31,12 +31,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake git \
             libopencv-dev libspdlog-dev libgtest-dev libgmock-dev
+          # cspell:ignore libgtest libgmock
 
       - name: Set up toolchain (macOS)
         if: runner.os == 'macOS'
         run: |
           brew update
           brew install cmake opencv spdlog llvm googletest
+          # cspell:ignore googletest
           echo "CC=clang" >> $GITHUB_ENV
           echo "CXX=clang++" >> $GITHUB_ENV
 
@@ -48,12 +50,14 @@ jobs:
             -DENABLE_BENCHMARKS=ON \
             -DENABLE_EXAMPLES=ON \
             -DOPENCAM_ENABLE_ML=0
+          # cspell:ignore DENABLE DOPENCAM
 
       - name: Build
         run: cmake --build build -j
 
       - name: Test
         run: ctest --test-dir build --output-on-failure --verbose
+      # cspell:ignore ctest
 
       - name: Upload test artifacts
         if: always()
@@ -74,12 +78,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y clang-format clang-tidy cppcheck cmake build-essential
+          # cspell:ignore cppcheck
       - name: clang-format check
         run: |
           mapfile -t files < <(git ls-files '*.cpp' '*.cc' '*.c' '*.hpp' '*.hh' '*.h')
           if [ "${#files[@]}" -gt 0 ]; then
             clang-format --dry-run --Werror "${files[@]}"
           fi
+      # cspell:ignore mapfile Werror
       - name: Configure and minimal build for analysis
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
@@ -87,6 +93,7 @@ jobs:
       - name: cppcheck (non-blocking)
         run: |
           cppcheck --enable=all --inline-suppr --template=gcc . || true
+      # cspell:ignore cppcheck suppr
 
   python:
     name: Python package tests
@@ -119,11 +126,13 @@ jobs:
               print(f"Version mismatch: pyproject={vp.group(1) if vp else None}, setup.py={vs.group(1) if vs else None}", file=sys.stderr)
               sys.exit(1)
           PY
+      # cspell:ignore pyproject pathlib pyproj
       - name: Build pybind extension
         run: |
           pushd python/bindings
           python setup.py build_ext --inplace
           popd
+      # cspell:ignore pushd inplace popd
       - name: Run pytest
         run: |
           pytest -v
@@ -146,19 +155,24 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Build sdist and wheel
+      - name: Install uv and hatch
         run: |
-          python -m pip install --upgrade pip build twine
+          python -m pip install --upgrade pip
+          pip install uv hatchling hatch
+
+      - name: Build sdist and wheel (hatch)
+        run: |
           rm -rf dist
-          python -m build
+          python -m hatch build -t sdist -t wheel
           ls -l dist
+      # cspell:ignore sdist
+      # cspell:ignore sdist
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages_dir: dist
-          print_hash: true
+          packages-dir: dist
+          print-hash: true
         env:
           PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
 
@@ -176,6 +190,7 @@ jobs:
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
+      # cspell:ignore softprops
         with:
           tag_name: ${{ github.ref_name }}
           name: OpenCam ${{ github.ref_name }}

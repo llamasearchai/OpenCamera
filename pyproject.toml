@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=60", "wheel", "pybind11>=2.8.0", "cmake>=3.18"]
-build-backend = "setuptools.build_meta"
+requires = ["setuptools>=60", "wheel", "pybind11>=2.8.0", "cmake>=3.18", "hatchling>=1.21.0"]
+build-backend = "hatchling.build"
 
 [project]
 name = "opencam-auto-exposure"
@@ -101,6 +101,20 @@ Changelog = "https://github.com/nikjois/opencam-auto-exposure/blob/main/CHANGELO
 [project.scripts]
 opencam-benchmark = "opencam.benchmark:main"
 opencam-train = "ml.training.train_scene_classifier:main"
+
+# Packaging/build configuration
+[tool.hatch.build]
+targets = ["sdist", "wheel"]
+
+[tool.hatch.build.targets.sdist]
+include = ["python/opencam", "python/bindings", "algorithms", "core", "README.md", "LICENSE", "setup.py", "pyproject.toml"]
+exclude = ["build", "build-asan", "dist", ".github"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["python/opencam"]
+
+[tool.hatch.version]
+path = "setup.py"
 
 [tool.setuptools]
 packages = ["opencam"]
