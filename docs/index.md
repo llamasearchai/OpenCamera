@@ -10,26 +10,26 @@ OpenCam Auto Exposure is a comprehensive C++ library that provides advanced auto
 
 ## Features
 
-### 🎯 **Multiple Metering Modes**
+### Multiple Metering Modes
 - **Average**: Traditional average brightness metering
 - **Center-weighted**: Prioritizes center of frame
 - **Spot**: Precise spot metering
 - **Multi-zone**: Advanced multi-zone analysis
 - **Intelligent**: AI-powered scene analysis
 
-### 🤖 **AI-Powered Features**
+### AI-Powered Features
 - Machine learning-based scene classification
 - Face detection and priority metering
 - Backlit scene detection
 - Low-light optimization
 
-### ⚡ **High Performance**
+### High Performance
 - Real-time processing up to 12,000+ FPS
 - Optimized for multiple resolutions
 - Thread-safe implementation
 - Memory-efficient design
 
-### 🔧 **Developer Friendly**
+### Developer Friendly
 - Comprehensive C++ API
 - Python bindings
 - Extensive test suite
@@ -98,12 +98,12 @@ while (auto frame = camera->getNextFrame()) {
 
 ### Benchmark Results
 
-| Resolution | Mode | Performance | FPS |
-|------------|------|-------------|-----|
-| 320x240 | Average | 12,648 FPS | ⚡⚡⚡⚡⚡ |
-| 640x480 | Intelligent | 1,889 FPS | ⚡⚡⚡⚡ |
-| 1920x1080 | Spot | 471 FPS | ⚡⚡⚡ |
-| 3840x2160 | Center-weighted | 51 FPS | ⚡⚡ |
+| Resolution | Mode | Performance |
+|------------|------|-------------|
+| 320x240 | Average | 12,648 FPS |
+| 640x480 | Intelligent | 1,889 FPS |
+| 1920x1080 | Spot | 471 FPS |
+| 3840x2160 | Center-weighted | 51 FPS |
 
 ### Real-time Capability
 
@@ -279,4 +279,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**OpenCam Auto Exposure v1.0.0** - Built with ❤️ by Nik Jois 
+**OpenCam Auto Exposure v1.0.0** - Built by Nik Jois 

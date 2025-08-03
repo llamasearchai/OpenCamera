@@ -9,46 +9,46 @@ A high-performance, intelligent auto exposure system for computer vision applica
 
 **Author:** Nik Jois <nikjois@llamasearch.ai>
 
-## 🚀 Features
+## Features
 
-### 🎯 **Multiple Metering Modes**
+### Multiple Metering Modes
 - **Average**: Traditional average brightness metering
 - **Center-weighted**: Prioritizes center of frame
 - **Spot**: Precise spot metering
 - **Multi-zone**: Advanced multi-zone analysis
 - **Intelligent**: AI-powered scene analysis
 
-### 🤖 **AI-Powered Features**
+### AI-Powered Features
 - Machine learning-based scene classification
 - Face detection and priority metering
 - Backlit scene detection
 - Low-light optimization
 
-### ⚡ **High Performance**
+### High Performance
 - Real-time processing up to **12,000+ FPS**
 - Optimized for multiple resolutions
 - Thread-safe implementation
 - Memory-efficient design
 
-### 🔧 **Developer Friendly**
+### Developer Friendly
 - Comprehensive C++ API
 - Python bindings
 - Extensive test suite
 - Detailed documentation
 - Command-line demo application
 
-## 📊 Performance
+## Performance
 
-| Resolution | Mode | Performance | FPS |
-|------------|------|-------------|-----|
-| 320x240 | Average | 12,648 FPS | ⚡⚡⚡⚡⚡ |
-| 640x480 | Intelligent | 1,889 FPS | ⚡⚡⚡⚡ |
-| 1920x1080 | Spot | 471 FPS | ⚡⚡⚡ |
-| 3840x2160 | Center-weighted | 51 FPS | ⚡⚡ |
+| Resolution | Mode | Performance |
+|------------|------|-------------|
+| 320x240 | Average | 12,648 FPS |
+| 640x480 | Intelligent | 1,889 FPS |
+| 1920x1080 | Spot | 471 FPS |
+| 3840x2160 | Center-weighted | 51 FPS |
 
 All metering modes achieve **real-time performance** (≥30 FPS) across common resolutions.
 
-## 🛠️ Quick Start
+## Quick Start
 
 ### Building from Source
 
