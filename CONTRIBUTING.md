@@ -268,6 +268,25 @@ def test_compute_exposure_valid_input():
 
 ## Pull Request Process
 
+### Commit Message Policy
+
+- Do not use emojis in commit messages.
+- Keep subject lines concise (max 72 characters), in imperative mood, and without a trailing period.
+- Prefer Conventional Commits style (feat:, fix:, docs:, refactor:, test:, build:, ci:, chore:) or a clear, descriptive subject.
+- Reference issues when applicable using "Fixes #123".
+
+Our CI enforces a no-emoji and professional commit policy. PRs or pushes that violate these rules may fail the commit policy workflow.
+
+### Commit Message Policy
+
+- Do not use emojis in commit messages.
+- Keep subject lines concise (max 72 characters), in imperative mood, and without a trailing period.
+- Prefer Conventional Commits style (feat:, fix:, docs:, refactor:, test:, build:, ci:, chore:) or a clear, descriptive subject.
+- Reference issues when applicable using "Fixes #123".
+
+Our CI enforces a no-emoji and professional commit policy. PRs or pushes that violate these rules may fail the commit policy workflow.
+
+
 ### PR Checklist
 
 Before submitting a pull request, ensure:
@@ -380,6 +399,28 @@ New contributors can:
 - Ask questions in discussions
 - Request mentorship from maintainers
 - Pair program on complex features
+
+## Release Process (Maintainers)
+
+- Version bump: Update versions in [`pyproject.toml`](pyproject.toml) and [`setup.py`](setup.py:52).
+- Update [`CHANGELOG.md`](CHANGELOG.md) with the new version and date section.
+- Create and merge a release PR from `main` with professional commit messages.
+- Tag the release as `vX.Y.Z`. Pushing the tag triggers the release workflow which:
+  - Builds and tests across C++ and Python,
+  - Publishes to PyPI (requires `PYPI_API_TOKEN` in repository secrets),
+  - Creates a GitHub Release with notes extracted from the changelog.
+- Verify GitHub Release and PyPI publication.
+
+## Release Process (Maintainers)
+
+- Version bump: Update versions in [`pyproject.toml`](pyproject.toml) and [`setup.py`](setup.py:52).
+- Update [`CHANGELOG.md`](CHANGELOG.md) with the new version and date section.
+- Create and merge a release PR from `main` with professional commit messages.
+- Tag the release as `vX.Y.Z`. Pushing the tag triggers the release workflow which:
+  - Builds and tests across C++ and Python,
+  - Publishes to PyPI (requires `PYPI_API_TOKEN` in repository secrets),
+  - Creates a GitHub Release with notes extracted from the changelog.
+- Verify GitHub Release and PyPI publication.
 
 ## Getting Help
 

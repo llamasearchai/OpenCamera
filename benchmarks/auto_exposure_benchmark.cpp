@@ -253,7 +253,7 @@ private:
             frame.image.setTo(color);
             
             // Add some noise for realism
-            cv::Mat noise;
+            cv::Mat noise(frame.image.size(), frame.image.type());
             cv::randn(noise, cv::Scalar::all(0), cv::Scalar::all(10));
             frame.image += noise;
         }
@@ -295,7 +295,7 @@ private:
                 
             case 4: // Low light with noise
                 {
-                    cv::Mat noise;
+                    cv::Mat noise(image.size(), image.type());
                     cv::randn(noise, cv::Scalar(40, 40, 40), cv::Scalar(20, 20, 20));
                     image = noise;
                 }
@@ -313,7 +313,7 @@ private:
         }
         
         // Add some random noise to all scenes
-        cv::Mat noise;
+        cv::Mat noise(image.size(), image.type());
         cv::randn(noise, cv::Scalar::all(0), cv::Scalar::all(5));
         image += noise;
     }

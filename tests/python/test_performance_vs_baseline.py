@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Performance comparison tests between OpenCam implementation and a baseline.
 
-These tests compare the throughput of the compiled C++ \ ``AutoExposure``
+These tests compare the throughput of the compiled C++ ``AutoExposure``
 controller (exposed to Python via *pybind11*) against a very small, pure-Python
 reference implementation ``BaselineAutoExposure``.  The goal is to ensure that
 we never introduce changes that make the production implementation slower than

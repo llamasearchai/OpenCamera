@@ -1,0 +1,42 @@
+# OpenCam CMake package configuration file
+# This file is configured by CMakePackageConfigHelpers at build time.
+
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# Dependencies (OpenCV and spdlog via pkg-config typically)
+# Consumers may already have these, so we keep it soft here.
+
+set(OpenCamAutoExposure_VERSION "@PROJECT_VERSION@")
+
+# Compute the installation prefix relative to this file.
+get_filename_component(_OPENCAM_PACKAGE_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+
+# Targets
+if(NOT TARGET opencam_core)
+  include("${CMAKE_CURRENT_LIST_DIR}/OpenCamTargets.cmake" OPTIONAL)
+endif()
+
+# Include directories
+set(OpenCam_INCLUDE_DIRS "${_OPENCAM_PACKAGE_PREFIX}/include")
+
+# Libraries
+set(OpenCam_LIBRARIES opencam_core auto_exposure isp_algorithms)
+
+# Exported variables for find_package consumers
+set(OpenCam_FOUND TRUE)
+
+# Compatibility info
+set(OpenCam_VERSION "@PROJECT_VERSION@")
+
+# Provide standard variables
+set(OpenCamAutoExposure_INCLUDE_DIRS "${OpenCam_INCLUDE_DIRS}")
+set(OpenCamAutoExposure_LIBRARIES "${OpenCam_LIBRARIES}")
+
+# Print a small status when found in verbose mode
+if(NOT OpenCam_FIND_QUIETLY)
+  message(STATUS "Found OpenCam Auto Exposure: version @PROJECT_VERSION@")
+  message(STATUS "  Include dirs: ${OpenCam_INCLUDE_DIRS}")
+  message(STATUS "  Libraries: ${OpenCam_LIBRARIES}")
+endif()

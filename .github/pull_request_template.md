@@ -1,5 +1,7 @@
 ## Description
 
+Important: Keep commit messages professional. Do not use emojis. Write concise, factual subjects (max 72 chars, no trailing period). Follow Conventional Commits or clear, descriptive subjects.
+
 **Summary**
 Provide a brief summary of the changes in this PR.
 
@@ -126,6 +128,13 @@ If applicable, add screenshots or recordings to demonstrate the changes.
 
 **Before/After:**
 Show the state before and after your changes.
+
+## Commit Hygiene
+
+- Commit messages contain no emojis.
+- Subjects are concise (<= 72 chars), imperative mood, no trailing period.
+- Squash commits where appropriate to keep history clean.
+- Reference issues with "Fixes #123" where applicable.
 
 ## Checklist
 

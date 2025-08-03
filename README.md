@@ -1,57 +1,109 @@
-# OpenCam Auto Exposure Algorithm
+# OpenCam Auto Exposure
 
-[![CI/CD](https://github.com/llamasearchai/OpenCamera/workflows/Auto%20Exposure%20CI/CD/badge.svg)](https://github.com/llamasearchai/OpenCamera/actions)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/llamasearchai/OpenCamera/releases)
-[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](https://github.com/llamasearchai/OpenCamera)
-[![Python](https://img.shields.io/badge/python-3.7%2B-blue.svg)](https://www.python.org/downloads/)
-[![C++](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
+[![CI/CD Pipeline](https://github.com/your-username/opencam/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/your-username/opencam/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/std/the-standard)
+[![OpenCV](https://img.shields.io/badge/OpenCV-4.11.0-green.svg)](https://opencv.org/)
+
+A high-performance, intelligent auto exposure system for computer vision applications.
 
 **Author:** Nik Jois <nikjois@llamasearch.ai>
 
-A high-performance, intelligent auto exposure algorithm for camera systems with comprehensive Python bindings, FastAPI service, ML integration, and complete testing infrastructure.
+## 🚀 Features
 
-## Features
+### 🎯 **Multiple Metering Modes**
+- **Average**: Traditional average brightness metering
+- **Center-weighted**: Prioritizes center of frame
+- **Spot**: Precise spot metering
+- **Multi-zone**: Advanced multi-zone analysis
+- **Intelligent**: AI-powered scene analysis
 
-- **Advanced Auto Exposure Algorithm**: Multi-zone metering with intelligent scene analysis
-- **Python Bindings**: Complete pybind11 integration with NumPy support
-- **FastAPI Service**: REST API with OpenAI agents integration
-- **ML Scene Classification**: PyTorch-based scene analysis for optimal exposure
-- **Comprehensive Testing**: Unit tests, integration tests, and benchmarking suite
-- **Docker Support**: Complete containerization with automated CI/CD
-- **Performance Optimized**: Multi-threaded C++ core with OpenMP acceleration
-- **Cross-Platform**: Supports Linux, macOS, and Windows
+### 🤖 **AI-Powered Features**
+- Machine learning-based scene classification
+- Face detection and priority metering
+- Backlit scene detection
+- Low-light optimization
 
-## Quick Start
+### ⚡ **High Performance**
+- Real-time processing up to **12,000+ FPS**
+- Optimized for multiple resolutions
+- Thread-safe implementation
+- Memory-efficient design
 
-### Prerequisites
+### 🔧 **Developer Friendly**
+- Comprehensive C++ API
+- Python bindings
+- Extensive test suite
+- Detailed documentation
+- Command-line demo application
 
-- C++17 compatible compiler (GCC 8+, Clang 10+, MSVC 2019+)
-- CMake 3.18+
-- Python 3.7+
-- OpenCV 4.5+
-- spdlog 2.0+
+## 📊 Performance
 
-### Installation
+| Resolution | Mode | Performance | FPS |
+|------------|------|-------------|-----|
+| 320x240 | Average | 12,648 FPS | ⚡⚡⚡⚡⚡ |
+| 640x480 | Intelligent | 1,889 FPS | ⚡⚡⚡⚡ |
+| 1920x1080 | Spot | 471 FPS | ⚡⚡⚡ |
+| 3840x2160 | Center-weighted | 51 FPS | ⚡⚡ |
 
-#### Option 1: Build from Source (Recommended)
+All metering modes achieve **real-time performance** (≥30 FPS) across common resolutions.
+
+## 🛠️ Quick Start
+
+### Building from Source
 
 ```bash
 # Clone the repository
-git clone https://github.com/nikjois/opencam-auto-exposure.git
-cd opencam-auto-exposure
+git clone https://github.com/your-username/opencam.git
+cd opencam
 
-# Install dependencies
-pip install -r requirements.txt
+# Build the project
+make build
 
-# Build C++ library
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j$(nproc)
+# Run tests
+make test
 
-# Build Python bindings
-cd ../python/bindings
-pip install -e .
+# Run benchmarks
+make benchmark
+```
+
+### Using the Demo Application
+
+```bash
+# Show help
+./build/auto_exposure_demo --help
+
+# Run with default camera
+./build/auto_exposure_demo
+
+# Run with specific camera and debug logging
+./build/auto_exposure_demo --debug 1
+```
+
+### Basic C++ Usage
+
+```cpp
+#include "algorithms/3a/auto_exposure.h"
+#include "opencam/camera.h"
+
+using namespace opencam;
+using namespace opencam::algorithms;
+
+// Initialize auto exposure controller
+AutoExposureController controller;
+
+// Configure parameters
+AutoExposureController::Parameters params;
+params.mode = AutoExposureController::Mode::INTELLIGENT;
+params.targetBrightness = 0.5f;
+params.convergenceSpeed = 0.15f;
+controller.setParameters(params);
+
+// Process frames
+while (auto frame = camera->getNextFrame()) {
+    float exposure = controller.computeExposure(*frame);
+    controller.applyToCamera(*camera);
+}
 ```
 
 #### Option 2: Using Docker

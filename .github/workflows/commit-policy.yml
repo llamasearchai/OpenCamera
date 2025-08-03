@@ -1,0 +1,66 @@
+name: Commit Policy
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, edited, reopened]
+  push:
+    branches: [ main ]
+
+jobs:
+  no-emoji-and-style:
+    name: Enforce professional commit messages (no emojis)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine commit range
+        id: range
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "range=${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+          else
+            # For push, check commits in this push
+            echo "range=${{ github.event.before }}..${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fail on emojis in commit subject/body
+        run: |
+          range="${{ steps.range.outputs.range }}"
+          echo "Checking commits in range: $range"
+          # Regex of disallowed unicode emoji ranges (rough but effective)
+          # Covers common emoji blocks: Emoticons, Misc Symbols and Pictographs, Transport and Map, Supplemental Symbols, Dingbats, Symbols & Pictographs, etc.
+          disallowed_regex=$'[\u203C-\u3299\u1F000-\u1FAFF\u1F300-\u1F6FF\u1F900-\u1F9FF\u2600-\u27BF]'
+          bad=0
+          while IFS= read -r sha; do
+            subj=$(git log -n1 --format=%s "$sha")
+            body=$(git log -n1 --format=%b "$sha")
+            if printf "%s\n%s" "$subj" "$body" | python3 -c "import sys,re; s=sys.stdin.read(); import re; print(1 if re.search(r'$disallowed_regex', s) else 0)"; then
+              bad=1
+              echo "Commit $sha contains emoji characters and violates the policy."
+              echo "Subject: $subj"
+            fi
+            # Enforce concise, professional subject line: max 72 chars, no trailing period, no all-caps, no leading emojis
+            if [ ${#subj} -gt 72 ]; then
+              bad=1
+              echo "Commit $sha subject exceeds 72 characters."
+            fi
+            if printf "%s" "$subj" | grep -qE '\.$'; then
+              bad=1
+              echo "Commit $sha subject ends with a period."
+            fi
+            if printf "%s" "$subj" | grep -qE '^[A-Z ]{6,}$'; then
+              bad=1
+              echo "Commit $sha subject appears to be shouting (ALL CAPS)."
+            fi
+          done < <(git rev-list "$range")
+          if [ $bad -ne 0 ]; then
+            echo "::error::Commit message policy violation detected."
+            exit 1
+          fi

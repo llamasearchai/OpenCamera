@@ -1,0 +1,142 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  OPENCAM_ENABLE_ML: 0
+  OPENCAM_CASCADE: /nonexistent
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          cmake \
+          libopencv-dev \
+          libspdlog-dev \
+          libgtest-dev \
+          libgmock-dev \
+          python3-dev \
+          python3-pip
+    
+    - name: Install Python dependencies
+      run: |
+        pip3 install numpy pytest
+    
+    - name: Configure CMake
+      run: |
+        mkdir build
+        cd build
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DENABLE_TESTING=ON \
+          -DENABLE_BENCHMARKS=ON \
+          -DENABLE_EXAMPLES=ON
+    
+    - name: Build
+      run: cmake --build build -j$(nproc)
+    
+    - name: Run C++ tests
+      run: |
+        cd build
+        ctest --output-on-failure
+    
+    - name: Run Python tests
+      run: |
+        export PYTHONPATH=$PWD/build:$PYTHONPATH
+        python3 -m pytest tests/python -v
+
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        brew update
+        brew install cmake opencv spdlog googletest
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    
+    - name: Install Python dependencies
+      run: |
+        pip install numpy pytest
+    
+    - name: Configure CMake
+      run: |
+        mkdir build
+        cd build
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DENABLE_TESTING=ON \
+          -DENABLE_BENCHMARKS=ON \
+          -DENABLE_EXAMPLES=ON
+    
+    - name: Build
+      run: cmake --build build -j$(sysctl -n hw.ncpu)
+    
+    - name: Run C++ tests
+      run: |
+        cd build
+        ctest --output-on-failure
+    
+    - name: Run Python tests
+      run: |
+        export PYTHONPATH=$PWD/build:$PYTHONPATH
+        python -m pytest tests/python -v
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          cmake \
+          libopencv-dev \
+          libspdlog-dev \
+          libgtest-dev \
+          libgmock-dev \
+          clang
+    
+    - name: Configure CMake with sanitizers
+      run: |
+        mkdir build-asan
+        cd build-asan
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_C_COMPILER=clang \
+          -DCMAKE_CXX_COMPILER=clang++ \
+          -DENABLE_SANITIZERS=ON \
+          -DENABLE_TESTING=ON
+    
+    - name: Build with sanitizers
+      run: cmake --build build-asan -j$(nproc)
+    
+    - name: Run tests with sanitizers
+      run: |
+        cd build-asan
+        ASAN_OPTIONS=detect_leaks=1 ctest --output-on-failure

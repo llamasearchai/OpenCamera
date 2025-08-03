@@ -49,7 +49,7 @@ spdlog_inc, spdlog_ldirs, spdlog_libs = _find_pkg_config("spdlog")
 # Extension module definition
 # ---------------------------------------------------------------------------
 
-VERSION = "1.0.0"
+VERSION = "0.5.0"
 
 ext_modules = [
     Pybind11Extension(

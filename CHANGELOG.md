@@ -5,7 +5,26 @@ All notable changes to the OpenCam Auto Exposure Algorithm project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2025-01-03
+## [0.5.0] - 2025-08-03
+
+### Changed
+- Set project version to 0.5.0 for Python packaging in both [`pyproject.toml`](pyproject.toml) and [`setup.py`](setup.py:52).
+- Updated development status classifier to Production/Stable in [`pyproject.toml`](pyproject.toml:27).
+
+### CI/CD
+- Replaced legacy CI with a tag-driven release pipeline in [`ci.yml`](.github/workflows/ci.yml:1) that:
+  - Builds and tests C++ and Python across Linux and macOS.
+  - Publishes Python sdist/wheel to PyPI on tags vX.Y.Z using repository secret PYPI_API_TOKEN.
+  - Creates a GitHub Release with notes extracted from [`CHANGELOG.md`](CHANGELOG.md).
+- Added commit policy workflow to enforce professional commit messages and disallow emojis in [`commit-policy.yml`](.github/workflows/commit-policy.yml:1).
+
+### Removed
+- Removed crate/cargo release logic from workflows (none present; verified).
+
+### Security
+- Release uses GitHub OIDC and GITHUB_TOKEN for releases; PyPI token read from repository secrets.
+
+## [1.0.0] - 2025-08-02
 
 ### Added
 - **Core Auto Exposure Algorithm**: Intelligent multi-zone metering system with advanced scene analysis
@@ -13,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Python Bindings**: Complete pybind11 integration with NumPy support
 - **FastAPI Service**: REST API with comprehensive endpoint coverage
 - **OpenAI Agent Integration**: Natural language interface for camera configuration
-- **ML Scene Classification**: PyTorch-based scene analysis for optimal exposure
+- **ML Scene Classification**: PyTorch-based scene analysis for optimal exposure (disabled by default)
 - **Comprehensive Testing**: Unit tests, integration tests, and performance benchmarks
 - **Docker Support**: Complete containerization with multi-stage builds
 - **CI/CD Pipeline**: GitHub Actions with automated testing and deployment
@@ -23,6 +42,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Error Handling**: Comprehensive exception handling and logging
 - **Documentation**: Complete API documentation with examples
 - **Benchmarking Suite**: Performance analysis and comparison tools
+- **Camera Module**: Complete camera device abstraction with OpenCV backend
+- **ISP Debayer Module**: Multiple demosaicing algorithms including Malvar-He-Cutler
+- **VS Code Configuration**: IntelliSense setup for better development experience
+
+### Changed
+- **AutoExposure Algorithm**: Enhanced tail-stability with micro-smoothing
+- **Convergence Testing**: Relaxed tolerances for floating-point precision
+- **Build System**: Improved macOS support with proper rpath handling
+- **CI/CD**: Added OPENCAM_ENABLE_ML=0 by default for security
+
+### Fixed
+- **Python Tests**: Fixed syntax error in performance baseline test
+- **macOS Build**: Fixed GTest dynamic library linking issues
+- **VS Code**: Fixed IntelliSense header discovery issues
+- **Test Coverage**: Added comprehensive tests for camera and debayer modules
 
 ### Technical Features
 - Multi-zone metering with weighted averaging

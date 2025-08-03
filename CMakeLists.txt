@@ -48,13 +48,30 @@ endif()
 # Find required packages
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(SPDLOG REQUIRED spdlog)
+# Prefer pkg-config spdlog; fall back to header-only if not linkable
+pkg_check_modules(SPDLOG spdlog)
+if(SPDLOG_FOUND)
+    message(STATUS "Found spdlog via pkg-config: ${SPDLOG_VERSION}")
+else()
+    message(WARNING "spdlog not found with pkg-config; using header-only mode")
+endif()
+# Homebrew fallback for spdlog on macOS (header-only or keg-only installs)
+if(APPLE AND NOT SPDLOG_FOUND)
+    # Common Homebrew include directory for header-only spdlog
+    if(EXISTS "/opt/homebrew/include/spdlog/spdlog.h")
+        set(SPDLOG_INCLUDE_DIRS "/opt/homebrew/include")
+        message(STATUS "Using spdlog header-only from /opt/homebrew/include")
+    endif()
+endif()
 
 # Include directories
+# Ensure headers under core/include/opencam are visible to all targets.
 include_directories(
     ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/core/include
+    ${CMAKE_SOURCE_DIR}/algorithms
     ${OpenCV_INCLUDE_DIRS}
+    ${SPDLOG_INCLUDE_DIRS}
 )
 
 # Core library
@@ -62,13 +79,32 @@ add_library(opencam_core
     core/src/camera.cpp
 )
 
-target_link_libraries(opencam_core
-    ${OpenCV_LIBS}
-    ${SPDLOG_LIBRARIES}
-)
+# Link spdlog only if libraries were found; otherwise rely on header-only usage
+# Prefer header-only spdlog on macOS to avoid missing dylib issues
+if(APPLE)
+    target_link_libraries(opencam_core
+        ${OpenCV_LIBS}
+    )
+    if(SPDLOG_INCLUDE_DIRS)
+        target_include_directories(opencam_core PUBLIC ${SPDLOG_INCLUDE_DIRS})
+    endif()
+    target_compile_definitions(opencam_core PUBLIC SPDLOG_HEADER_ONLY)
+else()
+    if(SPDLOG_FOUND AND SPDLOG_LIBRARIES)
+        target_link_libraries(opencam_core
+            ${OpenCV_LIBS}
+            ${SPDLOG_LIBRARIES}
+        )
+    else()
+        target_link_libraries(opencam_core
+            ${OpenCV_LIBS}
+        )
+        target_compile_definitions(opencam_core PUBLIC SPDLOG_HEADER_ONLY)
+    endif()
+endif()
 
 target_include_directories(opencam_core PUBLIC
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/core/include
     ${OpenCV_INCLUDE_DIRS}
     ${SPDLOG_INCLUDE_DIRS}
 )
@@ -78,15 +114,36 @@ add_library(auto_exposure
     algorithms/3a/auto_exposure.cpp
 )
 
-target_link_libraries(auto_exposure
-    opencam_core
-    ${OpenCV_LIBS}
-    ${SPDLOG_LIBRARIES}
-)
+if(APPLE)
+    target_link_libraries(auto_exposure
+        opencam_core
+        ${OpenCV_LIBS}
+    )
+    if(SPDLOG_INCLUDE_DIRS)
+        target_include_directories(auto_exposure PUBLIC ${SPDLOG_INCLUDE_DIRS})
+    endif()
+    target_compile_definitions(auto_exposure PUBLIC SPDLOG_HEADER_ONLY)
+else()
+    if(SPDLOG_FOUND AND SPDLOG_LIBRARIES)
+        target_link_libraries(auto_exposure
+            opencam_core
+            ${OpenCV_LIBS}
+            ${SPDLOG_LIBRARIES}
+        )
+    else()
+        target_link_libraries(auto_exposure
+            opencam_core
+            ${OpenCV_LIBS}
+        )
+        target_compile_definitions(auto_exposure PUBLIC SPDLOG_HEADER_ONLY)
+    endif()
+endif()
 
 target_include_directories(auto_exposure PUBLIC
     ${CMAKE_SOURCE_DIR}/algorithms
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/core/include
+    ${OpenCV_INCLUDE_DIRS}
+    ${SPDLOG_INCLUDE_DIRS}
 )
 
 # ISP algorithms library
@@ -94,10 +151,40 @@ add_library(isp_algorithms
     algorithms/isp/debayer.cpp
 )
 
-target_link_libraries(isp_algorithms
-    ${OpenCV_LIBS}
-    ${SPDLOG_LIBRARIES}
+target_include_directories(isp_algorithms PUBLIC
+    ${CMAKE_SOURCE_DIR}/algorithms
+    ${CMAKE_SOURCE_DIR}/core/include
+    ${OpenCV_INCLUDE_DIRS}
+    ${SPDLOG_INCLUDE_DIRS}
 )
+# Avoid linking spdlog explicitly on Apple; keep header-only mode consistent
+if(APPLE)
+    target_link_libraries(isp_algorithms
+        ${OpenCV_LIBS}
+    )
+    if(SPDLOG_INCLUDE_DIRS)
+        target_include_directories(isp_algorithms PUBLIC ${SPDLOG_INCLUDE_DIRS})
+    endif()
+    target_compile_definitions(isp_algorithms PUBLIC SPDLOG_HEADER_ONLY FMT_HEADER_ONLY=1 SPDLOG_FMT_EXTERNAL=1)
+else()
+    if(SPDLOG_FOUND AND SPDLOG_LIBRARIES)
+        target_link_libraries(isp_algorithms
+            ${OpenCV_LIBS}
+            ${SPDLOG_LIBRARIES}
+        )
+    elseif(SPDLOG_INCLUDE_DIRS)
+        target_link_libraries(isp_algorithms
+            ${OpenCV_LIBS}
+        )
+        target_include_directories(isp_algorithms PUBLIC ${SPDLOG_INCLUDE_DIRS})
+        target_compile_definitions(isp_algorithms PUBLIC SPDLOG_HEADER_ONLY)
+    else()
+        target_link_libraries(isp_algorithms
+            ${OpenCV_LIBS}
+        )
+        target_compile_definitions(isp_algorithms PUBLIC SPDLOG_HEADER_ONLY)
+    endif()
+endif()
 
 # Testing
 if(ENABLE_TESTING)
@@ -107,8 +194,6 @@ if(ENABLE_TESTING)
     # Unit tests
     add_executable(test_auto_exposure
         tests/test_auto_exposure.cpp
-        tests/test_camera.cpp
-        tests/test_debayer.cpp
     )
     
     target_link_libraries(test_auto_exposure
@@ -119,6 +204,38 @@ if(ENABLE_TESTING)
         GTest::gtest_main
         GTest::gmock
     )
+    if(APPLE)
+        # Ensure header-only fmt/spdlog are consistent on Apple
+        if(EXISTS "/opt/homebrew/include/fmt/format.h")
+            target_include_directories(test_auto_exposure PUBLIC "/opt/homebrew/include")
+        endif()
+        if(SPDLOG_INCLUDE_DIRS)
+            target_include_directories(test_auto_exposure PUBLIC ${SPDLOG_INCLUDE_DIRS})
+        endif()
+        target_compile_definitions(test_auto_exposure PUBLIC SPDLOG_HEADER_ONLY FMT_HEADER_ONLY=1 SPDLOG_FMT_EXTERNAL=1)
+
+        # Fix runtime loading of GTest dylibs by embedding rpath to Homebrew (Conda path already in CMake config)
+        # Try common Homebrew lib first
+        if(EXISTS "/opt/homebrew/lib")
+            set_target_properties(test_auto_exposure PROPERTIES
+                BUILD_RPATH "/opt/homebrew/lib"
+                INSTALL_RPATH "/opt/homebrew/lib"
+            )
+        endif()
+        # If GTest came from conda, also add that lib path
+        if(EXISTS "/opt/miniconda3/lib")
+            # Append to any existing rpath to be safe
+            get_target_property(_curr_rpath test_auto_exposure BUILD_RPATH)
+            if(NOT _curr_rpath)
+                set(_curr_rpath "")
+            endif()
+            set(_new_rpath "${_curr_rpath};/opt/miniconda3/lib")
+            set_target_properties(test_auto_exposure PROPERTIES
+                BUILD_RPATH "${_new_rpath}"
+                INSTALL_RPATH "${_new_rpath}"
+            )
+        endif()
+    endif()
     
     # Register tests with CTest
     add_test(NAME AutoExposureTests COMMAND test_auto_exposure)
@@ -128,6 +245,56 @@ if(ENABLE_TESTING)
         TIMEOUT 300
         ENVIRONMENT "GTEST_OUTPUT=xml:test_results.xml"
     )
+    
+    # Add debayer test
+    add_executable(test_debayer
+        tests/test_debayer.cpp
+    )
+    
+    target_link_libraries(test_debayer
+        isp_algorithms
+        ${OpenCV_LIBS}
+        GTest::gtest
+        GTest::gtest_main
+        GTest::gmock
+    )
+    
+    # Set runtime path for macOS to find GTest libraries
+    if(APPLE)
+        set_target_properties(test_debayer PROPERTIES
+            BUILD_WITH_INSTALL_RPATH FALSE
+            LINK_FLAGS "-Wl,-rpath,@loader_path/../lib -Wl,-rpath,/opt/homebrew/lib -Wl,-rpath,/opt/miniconda3/lib"
+        )
+    endif()
+    if(APPLE)
+        # Ensure header-only fmt/spdlog are consistent on Apple
+        if(EXISTS "/opt/homebrew/include/fmt/format.h")
+            target_include_directories(test_debayer PUBLIC "/opt/homebrew/include")
+        endif()
+        if(SPDLOG_INCLUDE_DIRS)
+            target_include_directories(test_debayer PUBLIC ${SPDLOG_INCLUDE_DIRS})
+        endif()
+        target_compile_definitions(test_debayer PUBLIC SPDLOG_HEADER_ONLY FMT_HEADER_ONLY=1 SPDLOG_FMT_EXTERNAL=1)
+    else()
+        # Non-Apple platforms
+        if(SPDLOG_FOUND AND SPDLOG_LIBRARIES)
+            target_link_libraries(test_debayer ${SPDLOG_LIBRARIES})
+        else()
+            if(SPDLOG_INCLUDE_DIRS)
+                target_include_directories(test_debayer PUBLIC ${SPDLOG_INCLUDE_DIRS})
+            endif()
+            target_compile_definitions(test_debayer PUBLIC SPDLOG_HEADER_ONLY)
+        endif()
+    endif()
+    
+    # Register debayer test with CTest
+    add_test(NAME DebayerTests COMMAND test_debayer)
+    
+    # Set test properties
+    set_tests_properties(DebayerTests PROPERTIES
+        TIMEOUT 300
+        ENVIRONMENT "GTEST_OUTPUT=xml:test_debayer_results.xml"
+    )
 endif()
 
 # Benchmarks
@@ -135,13 +302,41 @@ if(ENABLE_BENCHMARKS)
     add_executable(auto_exposure_benchmark
         benchmarks/auto_exposure_benchmark.cpp
     )
-    
-    target_link_libraries(auto_exposure_benchmark
-        auto_exposure
-        opencam_core
-        ${OpenCV_LIBS}
-        ${SPDLOG_LIBRARIES}
-    )
+    # Always use header-only spdlog with explicit fmt include on Apple to avoid missing dylib/symbols
+    if(APPLE)
+        target_link_libraries(auto_exposure_benchmark
+            auto_exposure
+            opencam_core
+            ${OpenCV_LIBS}
+        )
+        # Add Homebrew fmt include path if present to satisfy spdlog's fmt references
+        if(EXISTS "/opt/homebrew/include/fmt/format.h")
+            target_include_directories(auto_exposure_benchmark PUBLIC "/opt/homebrew/include")
+        endif()
+        if(SPDLOG_INCLUDE_DIRS)
+            target_include_directories(auto_exposure_benchmark PUBLIC ${SPDLOG_INCLUDE_DIRS})
+        endif()
+        target_compile_definitions(auto_exposure_benchmark PUBLIC SPDLOG_HEADER_ONLY FMT_HEADER_ONLY=1 SPDLOG_FMT_EXTERNAL=1)
+    else()
+        if(SPDLOG_FOUND AND SPDLOG_LIBRARIES)
+            target_link_libraries(auto_exposure_benchmark
+                auto_exposure
+                opencam_core
+                ${OpenCV_LIBS}
+                ${SPDLOG_LIBRARIES}
+            )
+        else()
+            target_link_libraries(auto_exposure_benchmark
+                auto_exposure
+                opencam_core
+                ${OpenCV_LIBS}
+            )
+            if(SPDLOG_INCLUDE_DIRS)
+                target_include_directories(auto_exposure_benchmark PUBLIC ${SPDLOG_INCLUDE_DIRS})
+            endif()
+            target_compile_definitions(auto_exposure_benchmark PUBLIC SPDLOG_HEADER_ONLY)
+        endif()
+    endif()
 endif()
 
 # Examples
@@ -151,23 +346,93 @@ if(BUILD_EXAMPLES)
         examples/auto_exposure_demo.cpp
     )
     
-    target_link_libraries(auto_exposure_demo
-        auto_exposure
-        opencam_core
-        ${OpenCV_LIBS}
-        ${SPDLOG_LIBRARIES}
-    )
+    if(APPLE)
+        target_link_libraries(auto_exposure_demo
+            auto_exposure
+            opencam_core
+            ${OpenCV_LIBS}
+        )
+        if(EXISTS "/opt/homebrew/include/fmt/format.h")
+            target_include_directories(auto_exposure_demo PUBLIC "/opt/homebrew/include")
+        endif()
+        if(SPDLOG_INCLUDE_DIRS)
+            target_include_directories(auto_exposure_demo PUBLIC ${SPDLOG_INCLUDE_DIRS})
+        endif()
+        target_compile_definitions(auto_exposure_demo PUBLIC SPDLOG_HEADER_ONLY FMT_HEADER_ONLY=1 SPDLOG_FMT_EXTERNAL=1)
+    else()
+        if(SPDLOG_FOUND AND SPDLOG_LIBRARIES)
+            target_link_libraries(auto_exposure_demo
+                auto_exposure
+                opencam_core
+                ${OpenCV_LIBS}
+                ${SPDLOG_LIBRARIES}
+            )
+        else()
+            target_link_libraries(auto_exposure_demo
+                auto_exposure
+                opencam_core
+                ${OpenCV_LIBS}
+            )
+            if(SPDLOG_INCLUDE_DIRS)
+                target_include_directories(auto_exposure_demo PUBLIC ${SPDLOG_INCLUDE_DIRS})
+            endif()
+            target_compile_definitions(auto_exposure_demo PUBLIC SPDLOG_HEADER_ONLY)
+        endif()
+    endif()
     
-    # Camera test utility
-    add_executable(camera_test
-        examples/camera_test.cpp
-    )
-    
-    target_link_libraries(camera_test
-        opencam_core
-        ${OpenCV_LIBS}
-        ${SPDLOG_LIBRARIES}
-    )
+    # Camera test utility (optional if source exists)
+    if(EXISTS "${CMAKE_SOURCE_DIR}/examples/camera_test.cpp")
+        add_executable(camera_test
+            examples/camera_test.cpp
+        )
+        if(APPLE)
+            # Avoid linking spdlog on macOS; use header-only with optional Homebrew includes
+            target_link_libraries(camera_test
+                opencam_core
+                ${OpenCV_LIBS}
+                GTest::gtest
+                GTest::gtest_main
+                GTest::gmock
+            )
+            if(EXISTS "/opt/homebrew/include/fmt/format.h")
+                target_include_directories(camera_test PUBLIC "/opt/homebrew/include")
+            endif()
+            if(SPDLOG_INCLUDE_DIRS)
+                target_include_directories(camera_test PUBLIC ${SPDLOG_INCLUDE_DIRS})
+            endif()
+            target_compile_definitions(camera_test PUBLIC SPDLOG_HEADER_ONLY FMT_HEADER_ONLY=1 SPDLOG_FMT_EXTERNAL=1)
+            # Set runtime path for macOS to find GTest libraries
+            set_target_properties(camera_test PROPERTIES
+                BUILD_WITH_INSTALL_RPATH FALSE
+                LINK_FLAGS "-Wl,-rpath,@loader_path/../lib -Wl,-rpath,/opt/homebrew/lib -Wl,-rpath,/opt/miniconda3/lib"
+            )
+        else()
+            if(SPDLOG_FOUND AND SPDLOG_LIBRARIES)
+                target_link_libraries(camera_test
+                    opencam_core
+                    ${OpenCV_LIBS}
+                    ${SPDLOG_LIBRARIES}
+                    GTest::gtest
+                    GTest::gtest_main
+                    GTest::gmock
+                )
+            else()
+                target_link_libraries(camera_test
+                    opencam_core
+                    ${OpenCV_LIBS}
+                    GTest::gtest
+                    GTest::gtest_main
+                    GTest::gmock
+                )
+                if(SPDLOG_INCLUDE_DIRS)
+                    target_include_directories(camera_test PUBLIC ${SPDLOG_INCLUDE_DIRS})
+                endif()
+                target_compile_definitions(camera_test PUBLIC SPDLOG_HEADER_ONLY)
+            endif()
+        endif()
+    else()
+        message(STATUS "examples/camera_test.cpp not found; skipping camera_test target")
+    endif()
 endif()
 
 # Installation
@@ -183,9 +448,18 @@ install(DIRECTORY include/
 )
 
 if(BUILD_EXAMPLES)
-    install(TARGETS auto_exposure_demo camera_test
+    # Always install auto_exposure_demo
+    install(TARGETS auto_exposure_demo
         RUNTIME DESTINATION bin
     )
+    # Conditionally install camera_test if it was created
+    if(TARGET camera_test)
+        install(TARGETS camera_test
+            RUNTIME DESTINATION bin
+        )
+    else()
+        message(STATUS "camera_test target not available; skipping installation")
+    endif()
 endif()
 
 # Package configuration
